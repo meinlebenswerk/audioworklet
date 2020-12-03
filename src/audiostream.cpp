@@ -7,14 +7,33 @@
 #include "utils.h"
 #include "debug.h"
 
+
+auto jsCallback = []( Napi::Env env, Napi::Function jsCallback, void* wrapper) {
+	audioBufferWrapper *bufwrap = (audioBufferWrapper*) wrapper;
+
+	Napi::ArrayBuffer arrayBuffer = Napi::ArrayBuffer::New(env, bufwrap->nframes);
+	memcpy(arrayBuffer.Data(), bufwrap->buffer, bufwrap->nframes);
+
+    jsCallback.Call( { arrayBuffer } );
+
+	delete wrapper;
+};
+
 long data_callback(cubeb_stream *stream, void *user_ptr, void const *input_buffer, void *output_buffer, long nframes)
 {
 	AudioStream *wrap = (AudioStream *)user_ptr;
 	if (!wrap->_isStarted) {
 		return 0;
 	}
+
 	if (wrap->_isInput) {
 		wrap->_audioBuffer.get()->enqueueAudioBuffer(wrap->_timestamp, (uint8_t *)input_buffer, nframes);
+		if(wrap->hasCallback){
+			audioBufferWrapper * wrapper = new audioBufferWrapper();
+			wrapper->buffer = input_buffer;
+			wrapper->nframes = nframes;
+			wrap->threadsafeCallback.BlockingCall( wrapper, jsCallback );
+		}
 	} else {
 		int readFrames = wrap->_audioBuffer.get()->dequeueAudioBuffer(wrap->_timestamp, (uint8_t *)output_buffer, nframes);
 	}
@@ -45,6 +64,8 @@ void AudioStream::Init(Napi::Env &env, Napi::Object exports, ClassRegistry *regi
         InstanceMethod("getFormat", &AudioStream::getFormat),
         InstanceMethod("getChannels", &AudioStream::getChannels),
         InstanceMethod("getRate", &AudioStream::getRate),
+
+		InstanceMethod("registerAudioCallback", &AudioStream::registerAudioCallback)
       }, registry);
 
   // Set the class's ctor function as a persistent object to keep it in memory
@@ -96,9 +117,13 @@ AudioStream::AudioStream(
 	int err;
 	_ownRef = Napi::Reference<Napi::Value>::New(info.This());
 	_parentRef = Napi::Reference<Napi::Value>::New(info[0], 1);
-  _cubebContext = info[1].As<Napi::External<cubeb>>().Data();
+	_cubebContext = info[1].As<Napi::External<cubeb>>().Data();
 	cubeb_device_info *device = info[2].As<Napi::External<cubeb_device_info>>().Data();
-  _isInput = info[3].As<Napi::Boolean>().Value();
+	_isInput = info[3].As<Napi::Boolean>().Value();
+
+	// jsAudioCallback = NULL;
+	hasCallback = false;
+
 	const char *name = "Node-AudioWorklet";
 
 	Napi::Object opts = info[4].IsUndefined() ? Napi::Object::New(info.Env()) : info[4].As<Napi::Object>();
@@ -198,7 +223,6 @@ AudioStream::AudioStream(
 		}
 		Napi::Error::New(info.Env(), "Error while starting stream").ThrowAsJavaScriptException();;
 	}
-
 
 	_audioBuffer.reset(new AudioRingBuffer(_bufferCapacityFrames, cubeb_sample_size(_params.format) * _params.channels)); // 10 seconds max buffer
 }
@@ -411,5 +435,35 @@ Napi::Value AudioStream::getRate(const Napi::CallbackInfo &info) {
 
 Napi::Value AudioStream::getBufferCapacity(const Napi::CallbackInfo &info) {
 	return Napi::Number::New(info.Env(), _bufferCapacityFrames);
+}
+
+
+
+std::thread nativeThread;
+void AudioStream::registerAudioCallback(const Napi::CallbackInfo &info){
+	Napi::Env env = info.Env();	
+
+	if (info.Length() < 1) {
+        Napi::TypeError::New(env, "Parameter 'jsAudioCallback' needs to be defined.")
+            .ThrowAsJavaScriptException();
+        return;
+    }
+
+    if (!info[0].IsFunction()) {
+        Napi::TypeError::New(env, "Parameter 'jsAudioCallback' needs to be a function.")
+            .ThrowAsJavaScriptException();
+        return;
+    }
+
+	hasCallback = true;
+	threadsafeCallback = Napi::ThreadSafeFunction::New(
+      env,
+      info[0].As<Napi::Function>(),  // JavaScript function called asynchronously
+      "Js AudioCallback",         // Name
+      0,                       // Unlimited queue
+      1,                       // Only one thread will use this initially
+      []( Napi::Env ) {        // Finalizer used to clean threads up
+        nativeThread.join();
+      } );
 }
 

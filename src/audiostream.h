@@ -1,12 +1,21 @@
 #pragma once
 
+
+// #include "napi-thread-safe-callback.hpp"
 #include <napi.h>
 #include <iostream>
 #include "cubeb/cubeb.h"
 #include "class_registry.h"
 #include "audio_ring_buffer.h"
 
+#include <thread>
+
 int bytesPerFormat(cubeb_sample_format format);
+
+struct audioBufferWrapper {
+	const void * buffer;
+	long nframes;
+};
 
 class AudioStream : public Napi::ObjectWrap<AudioStream>
 {
@@ -20,6 +29,7 @@ public:
 	void start(const Napi::CallbackInfo &info);
 	void stop(const Napi::CallbackInfo &info);
 	void setVolume(const Napi::CallbackInfo &info);
+
 	Napi::Value getLatency(const Napi::CallbackInfo& info);
 	Napi::Value getPosition(const Napi::CallbackInfo& info);
 	Napi::Value pushAudioChunk(const Napi::CallbackInfo &info);
@@ -30,6 +40,7 @@ public:
 	Napi::Value getFormat(const Napi::CallbackInfo &info);
 	Napi::Value getChannels(const Napi::CallbackInfo &info);
 	Napi::Value getRate(const Napi::CallbackInfo &info);
+	void registerAudioCallback(const Napi::CallbackInfo &info);
 
 	friend long data_callback(cubeb_stream *stream, void *user_ptr, void const *input_buffer, void *output_buffer, long nframes);
 	friend void state_callback(cubeb_stream * stm, void * user, cubeb_state state);
@@ -52,5 +63,9 @@ private:
 	bool _logProcessTime;
 	std::unique_ptr<AudioRingBuffer> _audioBuffer;
 	uint64_t _timestamp;
+
+	bool hasCallback;
+	Napi::ThreadSafeFunction threadsafeCallback;
+	// std::thread nativeThread;
 };
 
