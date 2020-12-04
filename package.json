@@ -1,6 +1,6 @@
 {
 	"name": "audioworklet",
-	"version": "5.0.5",
+	"version": "5.0.6",
 	"description": "Stream audio generated in realtime by a function to the speaker",
 	"main": "src/index.js",
 	"types": "src/index.d.ts",
@@ -11,7 +11,7 @@
 		"build:norust": "cmake-js build",
 		"build:doc": "typedoc src",
 		"build:debug": "cmake-js build -G \"Unix Makefiles\" -D",
-		"install": "prebuild-install --target 4 -r napi || npm run build",
+		"install": "prebuild-install --target 4 -r napi || npm i && npm run build",
 		"deploy": "np --no-tests",
 		"build-binaries": "run-script-os",
 		"build-binaries:default": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose -- --CDBUILD_RUST_LIBS=ON  -G \"Unix Makefiles\"",
@@ -19,7 +19,7 @@
 		"build-binaries-no-rust": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose",
 		"build-and-upload": "run-script-os",
 		"build-and-upload:default": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose -u $GITHUB_TOKEN -- --CDBUILD_RUST_LIBS=ON  -G \"Unix Makefiles\"",
-		"build-and-upload:win32": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose -u %GITHUB_TOKEN%",
+		"build-and-upload:win32": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose -u 7d5b671c5ac1ac32bbd8edd6157bab4f349a13dd",
 		"build-and-upload-no-rust": "prebuild -r napi -t 4 --backend cmake-js --include-regex \"^.*\\.(node|dylib|dll|so(\\.[0-9])?)$\" --verbose -u $GITHUB_TOKEN"
 	},
 	"repository": {
@@ -38,7 +38,7 @@
 	"devDependencies": {
 		"@types/node": "^12.12.17",
 		"np": "^5.2.1",
-		"prebuild": "^9.1.1",
+		"prebuild": "^10.0.1",
 		"run-script-os": "^1.0.7",
 		"simple-git": "^1.129.0",
 		"typedoc": "^0.17.4",
