@@ -14,7 +14,7 @@ const main = async () => {
     channels: CHANNELS,
   }, true);
 
-  inputStream.registerAudioCallback((data) => console.log(data))
+  inputStream.registerAudioCallback((data) => console.log(new Float32Array(data).slice(0, 10)))
 
   inputStream.start();
 
