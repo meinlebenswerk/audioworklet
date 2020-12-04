@@ -121,6 +121,9 @@ export declare class AudioStream {
 	registerReadHandler(readHandler: (audioChunk: TypedArray) => void, options?: {interval: number}): void;
 	registerWriteHandler(readHandler: (audioChunk: TypedArray) => void | boolean, options?: WriteHandlerOptions): void;
 
+	/* returns the audiostream directly from cubeb, only for input-streams */
+	registerAudioCallback(callback: (audioChunk: TypedArray) => void) : void;
+
 	configuredLatencyFrames: number;
 }
 
