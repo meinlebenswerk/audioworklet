@@ -11,8 +11,10 @@
 auto jsCallback = []( Napi::Env env, Napi::Function jsCallback, void* wrapper) {
 	audioBufferWrapper *bufwrap = (audioBufferWrapper*) wrapper;
 
-	Napi::ArrayBuffer arrayBuffer = Napi::ArrayBuffer::New(env, bufwrap->nframes);
-	memcpy(arrayBuffer.Data(), bufwrap->buffer, bufwrap->nframes);
+	size_t bufferSize = bufwrap->nframes * bufwrap->nChannels * bufwrap->bytesPerFrame;
+
+	Napi::ArrayBuffer arrayBuffer = Napi::ArrayBuffer::New(env, bufferSize);
+	memcpy(arrayBuffer.Data(), bufwrap->buffer, bufferSize);
 
     jsCallback.Call( { arrayBuffer } );
 
@@ -32,6 +34,8 @@ long data_callback(cubeb_stream *stream, void *user_ptr, void const *input_buffe
 			audioBufferWrapper * wrapper = new audioBufferWrapper();
 			wrapper->buffer = input_buffer;
 			wrapper->nframes = nframes;
+			wrapper->nChannels = wrap->nChannels;
+			wrapper->bytesPerFrame = wrap->bytesPerSample;
 			wrap->threadsafeCallback.BlockingCall( wrapper, jsCallback );
 		}
 	} else {
@@ -185,6 +189,20 @@ AudioStream::AudioStream(
 		}
 	} else {
 		_bufferCapacityFrames = 10 * _params.rate;
+	}
+
+	nChannels = _params.channels;
+	switch(_params.channels){
+		case CUBEB_SAMPLE_S16BE:
+		case CUBEB_SAMPLE_S16LE:
+		case CUBEB_SAMPLE_S16NE:
+			bytesPerSample = 2;
+		break;
+		case CUBEB_SAMPLE_FLOAT32BE:
+		case CUBEB_SAMPLE_FLOAT32LE:
+		case CUBEB_SAMPLE_FLOAT32NE:
+			bytesPerSample = 4;
+		break;
 	}
 
 	if (_isInput) {

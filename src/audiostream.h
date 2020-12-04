@@ -15,6 +15,8 @@ int bytesPerFormat(cubeb_sample_format format);
 struct audioBufferWrapper {
 	const void * buffer;
 	long nframes;
+	uint8_t bytesPerFrame;
+	uint8_t nChannels;
 };
 
 class AudioStream : public Napi::ObjectWrap<AudioStream>
@@ -63,6 +65,9 @@ private:
 	bool _logProcessTime;
 	std::unique_ptr<AudioRingBuffer> _audioBuffer;
 	uint64_t _timestamp;
+
+	uint8_t nChannels;
+	uint8_t bytesPerSample;
 
 	bool hasCallback;
 	Napi::ThreadSafeFunction threadsafeCallback;
