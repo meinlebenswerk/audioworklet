@@ -195,12 +195,10 @@ AudioStream::AudioStream(
 	switch(_params.channels){
 		case CUBEB_SAMPLE_S16BE:
 		case CUBEB_SAMPLE_S16LE:
-		case CUBEB_SAMPLE_S16NE:
 			bytesPerSample = 2;
 		break;
 		case CUBEB_SAMPLE_FLOAT32BE:
 		case CUBEB_SAMPLE_FLOAT32LE:
-		case CUBEB_SAMPLE_FLOAT32NE:
 			bytesPerSample = 4;
 		break;
 	}
